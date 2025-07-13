@@ -3,407 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Système Trappist-1</title>
+    <title>Visualisation des Orbites d'Exoplanètes</title>
+    <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: #0a0a0a;
-            font-family: Arial, sans-serif;
-            color: white;
-            overflow-x: auto;
-        }
-        
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            color: #ff6b35;
-        }
-        
-        .info {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #ccc;
-        }
-        
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        button {
-            padding: 8px 16px;
-            background: #ff6b35;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        button:hover {
-            background: #ff8c5a;
-        }
-        
-        .speed-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        input[type="range"] {
-            width: 100px;
-        }
-        
-        .legend {
-            margin-top: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            font-size: 12px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-        
-        .orbit-path {
-            fill: none;
-            stroke: rgba(255, 255, 255, 0.05);
-            stroke-width: 1;
-        }
-        
-        .planet-trail {
-            fill: none;
-            stroke-width: 2;
-            stroke-linecap: round;
-        }
-        
-        .habitable-zone {
-            fill: rgba(100, 150, 255, 0.25);
-            stroke: rgba(100, 150, 255, 0.5);
-            stroke-width: 1;
-        }
-        
-        .planet-info {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 1000;
-            border: 1px solid #ff6b35;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Système Trappist-1</h1>
-        <div class="info">
-            Étoile naine rouge ultra-froide située à 40 années-lumière de la Terre<br>
-            7 planètes rocheuses dont plusieurs dans la zone habitable
-        </div>
+        <h1>🌌 Visualisation des Orbites d'Exoplanètes</h1>
         
         <div class="controls">
             <button id="playPause">⏸️ Pause</button>
+            <button id="reset">🔄 Reset</button>
             <div class="speed-control">
                 <label>Vitesse:</label>
                 <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
                 <span id="speedValue">1x</span>
             </div>
-        </div>
-        
-        <svg id="solar-system" width="800" height="600"></svg>
-        
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ff6b35;"></div>
-                <span>Trappist-1 (étoile)</span>
+            <div class="trail-controls">
+                <label>
+                    <input type="checkbox" id="showTrails" checked>
+                    Traînées
+                </label>
+                <label>
+                    <input type="checkbox" id="fadeTrails" checked>
+                    Estompage
+                </label>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #8b4513;"></div>
-                <span>Trappist-1b</span>
+            <div class="star-controls">
+                <label>
+                    <input type="checkbox" id="starTwinkle" checked>
+                    Scintillement étoile
+                </label>
+                <div class="twinkle-speed-control">
+                    <label>Vitesse scintillement:</label>
+                    <input type="range" id="twinkleSpeedSlider" min="2" max="15" step="1" value="8">
+                    <span id="twinkleSpeedValue">8s</span>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #daa520;"></div>
-                <span>Trappist-1c</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #228b22;"></div>
-                <span>Trappist-1d</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #4169e1;"></div>
-                <span>Trappist-1e</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #6495ed;"></div>
-                <span>Trappist-1f</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #87ceeb;"></div>
-                <span>Trappist-1g</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #b0c4de;"></div>
-                <span>Trappist-1h</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: rgba(100, 150, 255, 0.5);"></div>
-                <span>Zone habitable</span>
+            <div class="habitable-zone-controls">
+                <label>
+                    <input type="checkbox" id="showHabitableZone" checked>
+                    Zone d'habitabilité
+                </label>
             </div>
         </div>
         
-        <div class="planet-info" id="planetInfo" style="display: none;"></div>
+        <div class="visualization-container">
+            <div id="exoplanet-viz" style="position: relative;"></div>
+            <div class="legend" id="legend"></div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Informations</h3>
+            <p>Cliquez sur une planète pour voir ses détails. Les orbites sont représentées à l'échelle relative.</p>
+            <div class="planet-info" id="planet-info"></div>
+        </div>
     </div>
 
+    <script src="js/exoplanets.js"></script>
+    <script src="data/trappist-1.js"></script>
     <script>
-        // Données du système Trappist-1
-        const trappist1Data = {
-            star: {
-                name: "Trappist-1",
-                radius: 8,
-                color: "#ff6b35",
-                temperature: 2511, // Kelvin
-                mass: 0.089 // masses solaires
-            },
-            planets: [
-                {
-                    name: "Trappist-1b",
-                    radius: 3,
-                    color: "#8b4513",
-                    distance: 60,
-                    period: 1.51, // jours
-                    mass: 1.017,
-                    description: "Planète la plus proche, très chaude, probablement verrouillée par les marées"
-                },
-                {
-                    name: "Trappist-1c",
-                    radius: 3.2,
-                    color: "#daa520",
-                    distance: 75,
-                    period: 2.42,
-                    mass: 1.156,
-                    description: "Deuxième planète, également très chaude"
-                },
-                {
-                    name: "Trappist-1d",
-                    radius: 2.8,
-                    color: "#228b22",
-                    distance: 90,
-                    period: 4.05,
-                    mass: 0.297,
-                    description: "À la limite intérieure de la zone habitable"
-                },
-                {
-                    name: "Trappist-1e",
-                    radius: 3.1,
-                    color: "#4169e1",
-                    distance: 105,
-                    period: 6.10,
-                    mass: 0.772,
-                    description: "Au cœur de la zone habitable, candidate prometteuse"
-                },
-                {
-                    name: "Trappist-1f",
-                    radius: 3.3,
-                    color: "#6495ed",
-                    distance: 120,
-                    period: 9.21,
-                    mass: 0.934,
-                    description: "Dans la zone habitable, pourrait avoir de l'eau liquide"
-                },
-                {
-                    name: "Trappist-1g",
-                    radius: 3.4,
-                    color: "#87ceeb",
-                    distance: 135,
-                    period: 12.35,
-                    mass: 1.148,
-                    description: "À la limite extérieure de la zone habitable"
-                },
-                {
-                    name: "Trappist-1h",
-                    radius: 2.5,
-                    color: "#b0c4de",
-                    distance: 150,
-                    period: 18.77,
-                    mass: 0.331,
-                    description: "Planète la plus éloignée, probablement trop froide"
-                }
-            ]
-        };
-
-        // Configuration de la simulation
-        const svg = d3.select("#solar-system");
-        const width = 800;
-        const height = 600;
-        const centerX = width / 2;
-        const centerY = height / 2;
-        
-        // Zone habitable pour Trappist-1 (estimée)
-        const habitableZone = {
-            inner: 85,  // Distance minimale pour l'eau liquide
-            outer: 140  // Distance maximale pour l'eau liquide
-        };
-        
-        let animationSpeed = 1;
-        let isPlaying = true;
-        let startTime = Date.now();
-        
-        // Création des groupes SVG
-        const orbitGroup = svg.append("g");
-        const habitableZoneGroup = svg.append("g");
-        const trailGroup = svg.append("g");
-        const planetGroup = svg.append("g");
-        const starGroup = svg.append("g");
-        
-        // Stockage des positions pour les traces
-        const planetTrails = trappist1Data.planets.map(() => []);
-        const maxTrailLength = 150; // Nombre de points dans la trace
-        
-        // Dessiner la zone habitable
-        habitableZoneGroup.append("circle")
-            .attr("cx", centerX)
-            .attr("cy", centerY)
-            .attr("r", habitableZone.outer)
-            .attr("class", "habitable-zone");
-            
-        habitableZoneGroup.append("circle")
-            .attr("cx", centerX)
-            .attr("cy", centerY)
-            .attr("r", habitableZone.inner)
-            .attr("fill", "#0a0a0a")
-            .attr("stroke", "rgba(100, 150, 255, 0.5)")
-            .attr("stroke-width", 1);
-        
-        // Dessiner les orbites
-        trappist1Data.planets.forEach(planet => {
-            orbitGroup.append("circle")
-                .attr("cx", centerX)
-                .attr("cy", centerY)
-                .attr("r", planet.distance)
-                .attr("class", "orbit-path");
+        // Initialiser la visualisation
+        const orbits = new Exoplanets('exoplanet-viz', exoplanetData, {
+            width: 800,
+            height: 600,
+            animationSpeed: 1,
+            showTrails: true,
+            showOrbits: true
         });
-        
-        // Dessiner l'étoile
-        starGroup.append("circle")
-            .attr("cx", centerX)
-            .attr("cy", centerY)
-            .attr("r", trappist1Data.star.radius)
-            .attr("fill", trappist1Data.star.color)
-            .attr("filter", "url(#starGlow)");
-        
-        // Effet de lueur pour l'étoile
-        const defs = svg.append("defs");
-        const filter = defs.append("filter")
-            .attr("id", "starGlow");
-        filter.append("feGaussianBlur")
-            .attr("stdDeviation", "3")
-            .attr("result", "coloredBlur");
-        const feMerge = filter.append("feMerge");
-        feMerge.append("feMergeNode")
-            .attr("in", "coloredBlur");
-        feMerge.append("feMergeNode")
-            .attr("in", "SourceGraphic");
-        
-        // Créer les planètes
-        const planets = planetGroup.selectAll(".planet")
-            .data(trappist1Data.planets)
-            .enter()
-            .append("circle")
-            .attr("class", "planet")
-            .attr("r", d => d.radius)
-            .attr("fill", d => d.color)
-            .attr("stroke", "rgba(255, 255, 255, 0.3)")
-            .attr("stroke-width", 0.5)
-            .style("cursor", "pointer")
-            .on("mouseover", function(event, d) {
-                const tooltip = d3.select("#planetInfo");
-                tooltip.style("display", "block")
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 10) + "px")
-                    .html(`
-                        <strong>${d.name}</strong><br>
-                        Période orbitale: ${d.period} jours<br>
-                        Masse: ${d.mass} Terres<br>
-                        ${d.description}
-                    `);
-            })
-            .on("mouseout", function() {
-                d3.select("#planetInfo").style("display", "none");
-            });
-        
-        // Créer les traces des planètes
-        const trails = trailGroup.selectAll(".planet-trail")
-            .data(trappist1Data.planets)
-            .enter()
-            .append("path")
-            .attr("class", "planet-trail")
-            .attr("stroke", d => d.color)
-            .attr("opacity", 0.7);
-        
-        // Animation
-        function animate() {
-            if (!isPlaying) return;
-            
-            const elapsed = (Date.now() - startTime) * animationSpeed;
-            
-            planets.attr("cx", (d, i) => {
-                const angle = (elapsed / (d.period * 1000)) * 2 * Math.PI;
-                return centerX + d.distance * Math.cos(angle);
-            })
-            .attr("cy", (d, i) => {
-                const angle = (elapsed / (d.period * 1000)) * 2 * Math.PI;
-                return centerY + d.distance * Math.sin(angle);
-            });
-            
-            requestAnimationFrame(animate);
-        }
-        
+
         // Contrôles
-        const playPauseBtn = document.getElementById("playPause");
-        const speedSlider = document.getElementById("speedSlider");
-        const speedValue = document.getElementById("speedValue");
-        
-        playPauseBtn.addEventListener("click", () => {
-            isPlaying = !isPlaying;
-            playPauseBtn.textContent = isPlaying ? "⏸️ Pause" : "▶️ Play";
-            if (isPlaying) {
-                startTime = Date.now() - (Date.now() - startTime);
-                animate();
+        document.getElementById('playPause').addEventListener('click', function() {
+            if (orbits.isPlaying) {
+                orbits.pause();
+                this.textContent = '▶️ Play';
+            } else {
+                orbits.play();
+                this.textContent = '⏸️ Pause';
             }
         });
-        
-        speedSlider.addEventListener("input", (e) => {
-            animationSpeed = parseFloat(e.target.value);
-            speedValue.textContent = animationSpeed + "x";
+
+        document.getElementById('reset').addEventListener('click', function() {
+            orbits.reset();
         });
-        
-        // Démarrer l'animation
-        animate();
+
+        document.getElementById('speedSlider').addEventListener('input', function() {
+            const speed = parseFloat(this.value);
+            orbits.setSpeed(speed);
+            document.getElementById('speedValue').textContent = speed + 'x';
+        });
+
+        // Contrôles des traînées
+        document.getElementById('showTrails').addEventListener('change', function() {
+            orbits.setTrails(this.checked);
+        });
+
+        document.getElementById('fadeTrails').addEventListener('change', function() {
+            orbits.setFadeTrails(this.checked);
+        });
+
+        // Contrôles de l'étoile
+        document.getElementById('starTwinkle').addEventListener('change', function() {
+            orbits.setStarTwinkle(this.checked);
+        });
+
+        document.getElementById('twinkleSpeedSlider').addEventListener('input', function() {
+            const speed = parseInt(this.value);
+            orbits.setTwinkleSpeed(speed);
+            document.getElementById('twinkleSpeedValue').textContent = speed + 's';
+        });
+
+        // Contrôle de la zone d'habitabilité
+        document.getElementById('showHabitableZone').addEventListener('change', function() {
+            orbits.setHabitableZone(this.checked);
+        });
     </script>
 </body>
 </html>

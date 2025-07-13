@@ -1,0 +1,285 @@
+/* Variables CSS pour les couleurs */
+:root {
+    /* Couleurs principales */
+    --primary-color: #4facfe;
+    --secondary-color: #00f2fe;
+    --accent-color: #667eea;
+    --accent-secondary: #764ba2;
+    
+    /* Couleurs de fond */
+    --bg-primary: #0c0c0c;
+    --bg-secondary: #1a1a2e;
+    --bg-tertiary: #16213e;
+    --bg-overlay: rgba(255, 255, 255, 0.1);
+    --bg-overlay-light: rgba(255, 255, 255, 0.05);
+    --bg-overlay-medium: rgba(255, 255, 255, 0.1);
+    --bg-legend: rgba(0, 0, 0, 0.8);
+    
+    /* Couleurs de texte */
+    --text-primary: white;
+    --text-secondary: rgba(255, 255, 255, 0.3);
+    
+    /* Couleurs de bordure */
+    --border-primary: rgba(255, 255, 255, 0.2);
+    --border-secondary: rgba(255, 255, 255, 0.1);
+    --border-accent: var(--primary-color);
+    
+    /* Couleurs d'ombre */
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-color-hover: rgba(0, 0, 0, 0.4);
+    
+    /* Couleurs spéciales */
+    --star-color: #FFD700;
+    --habitable-zone-color: #4facfe;
+    --habitable-zone-bg: rgba(79, 172, 254, 0.1);
+    --habitable-zone-border: rgba(79, 172, 254, 0.3);
+    
+    /* Couleurs d'état */
+    --success-color: #00FF00;
+    --warning-color: #FF6B35;
+    --info-color: #4facfe;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2.5em;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 12px 24px;
+    background: linear-gradient(45deg, var(--accent-color), var(--accent-secondary));
+    color: var(--text-primary);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-color-hover);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.speed-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.trail-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.trail-controls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    user-select: none;
+}
+
+.trail-controls input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.star-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.star-controls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    user-select: none;
+}
+
+.star-controls input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--star-color);
+}
+
+.habitable-zone-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.habitable-zone-controls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    user-select: none;
+}
+
+.habitable-zone-controls input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--habitable-zone-color);
+}
+
+.twinkle-speed-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 20px;
+}
+
+.twinkle-speed-control label {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.twinkle-speed-control input[type="range"] {
+    width: 100px;
+}
+
+input[type="range"] {
+    width: 150px;
+}
+
+.visualization-container {
+    background: var(--bg-overlay);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+.info-panel {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--bg-overlay-light);
+    border-radius: 10px;
+    border: 1px solid var(--border-secondary);
+}
+
+.planet-info {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--bg-overlay-medium);
+    border-radius: 8px;
+    border-left: 4px solid var(--border-accent);
+}
+
+.orbit-path {
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 1;
+    stroke-dasharray: 3,3;
+}
+
+.star {
+    filter: drop-shadow(0 0 10px currentColor);
+    animation: twinkle 8s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        filter: drop-shadow(0 0 10px currentColor);
+        opacity: 1;
+    }
+    25% {
+        filter: drop-shadow(0 0 12px currentColor);
+        opacity: 1.05;
+    }
+    50% {
+        filter: drop-shadow(0 0 8px currentColor);
+        opacity: 0.95;
+    }
+    75% {
+        filter: drop-shadow(0 0 14px currentColor);
+        opacity: 1.02;
+    }
+}
+
+.planet {
+    cursor: pointer;
+    transition: r 0.3s ease;
+}
+
+.planet:hover {
+    filter: drop-shadow(0 0 15px currentColor);
+}
+
+.planet-trail {
+    fill: none;
+    stroke-width: 2;
+    opacity: 0.6;
+}
+
+.legend {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-legend);
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 14px;
+    max-width: 200px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+} 
