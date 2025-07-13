@@ -44,15 +44,29 @@ class Exoplanets {
     }
     
     calculateHabitableZone() {
-        // Calcul de la zone d'habitabilité basé sur la température de l'étoile
-        // Formule simplifiée : zone d'habitabilité = L*^0.5 où L* est la luminosité de l'étoile
-        // Pour une étoile naine rouge comme TRAPPIST-1, on utilise une approximation
+        // Calcul de la zone d'habitabilité basé sur la luminosité de l'étoile
+        // Formule de luminosité : L = 4πR²σT⁴ où σ est la constante de Stefan-Boltzmann
         
         const starTemp = this.data.star.temperature;
-        const starMass = this.data.star.mass;
+        const starRadius = this.data.star.radius;
         
-        // Calcul de la luminosité approximative (relation masse-luminosité pour les naines rouges)
-        const luminosity = Math.pow(starMass, 2.5);
+        // Constante de Stefan-Boltzmann en W⋅m⁻²⋅K⁻⁴
+        const STEFAN_BOLTZMANN = 5.670374419e-8;
+        
+        // Rayon du Soleil en mètres
+        const SOLAR_RADIUS_M = 6.957e8;
+        
+        // Luminosité du Soleil en watts
+        const SOLAR_LUMINOSITY_W = 3.828e26;
+        
+        // Calcul du rayon de l'étoile en mètres
+        const starRadiusM = starRadius * SOLAR_RADIUS_M;
+        
+        // Calcul de la luminosité de l'étoile en watts
+        const starLuminosityW = 4 * Math.PI * Math.pow(starRadiusM, 2) * STEFAN_BOLTZMANN * Math.pow(starTemp, 4);
+        
+        // Conversion en luminosité solaire
+        const luminosity = starLuminosityW / SOLAR_LUMINOSITY_W;
         
         // Calcul des limites de la zone d'habitabilité
         // Limite interne (zone chaude) : ~0.75 * sqrt(L)
@@ -62,9 +76,13 @@ class Exoplanets {
         
         this.habitableZone = {
             inner: innerLimit,
-            outer: outerLimit
+            outer: outerLimit,
+            luminosity: luminosity
         };
-        
+        starLuminosityW
+        console.log(`Luminosité Trappist: ${starLuminosityW}`);
+        console.log(`Luminosité Soleil: ${SOLAR_LUMINOSITY_W}`);
+        console.log(`Luminosité calculée: ${(luminosity * 100).toFixed(6)}% L☉`);
         console.log(`Zone d'habitabilité calculée: ${innerLimit.toFixed(4)} - ${outerLimit.toFixed(4)} UA`);
     }
     
@@ -121,9 +139,10 @@ class Exoplanets {
             .domain([0, maxDistance])
             .range([0, minRadius]);
         
+        // Cette ligne crée une échelle linéaire avec D3 qui permet de convertir le rayon réel des planètes (en prenant le minimum et le maximum des rayons présents dans les données) en un rayon affiché à l'écran compris entre 3 et 12 pixels. Cela permet de représenter visuellement les différences de taille entre les planètes tout en gardant des valeurs adaptées à l'affichage SVG.
         this.planetSizeScale = d3.scaleLinear()
             .domain(d3.extent(this.data.planets, d => d.radius))
-            .range([3, 12]);
+            .range([3, 6]);
     }
     
     createElements() {
@@ -153,9 +172,37 @@ class Exoplanets {
             .attr('class', 'star')
             .attr('cx', 0)
             .attr('cy', 0)
-            .attr('r', this.data.star.radius || 8)
+            .attr('r', 12)
             .style('fill', this.data.star.color || '#FFF5B7')
-            .style('filter', `drop-shadow(0 0 20px ${this.data.star.color || '#FFF5B7'})`);
+            .style('filter', `drop-shadow(0 0 20px ${this.data.star.color || '#FFF5B7'})`)
+            .style('cursor', 'pointer')
+            .on('mouseover', function(event, d) {
+                // Agrandir l'étoile
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr('r', (this.data.star.radius || 8) * 1.3);
+                
+                // Afficher la popup
+                this.showStarInfo();
+                
+                // Positionner la popup
+                this.updateStarPopupPosition(event);
+            }.bind(this))
+            .on('mousemove', function(event, d) {
+                // Mettre à jour la position de la popup quand la souris bouge
+                this.updateStarPopupPosition(event);
+            }.bind(this))
+            .on('mouseout', function(event, d) {
+                // Réduire l'étoile
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr('r', this.data.star.radius || 8);
+                
+                // Masquer la popup
+                this.hideStarPopup();
+            }.bind(this));
         
         // Appliquer les options de scintillement
         this.updateStarTwinkle();
@@ -172,18 +219,32 @@ class Exoplanets {
             .attr('r', d => this.planetSizeScale(d.radius))
             .style('fill', d => d.color || '#4facfe')
             .style('cursor', 'pointer')
-            .on('click', (event, d) => this.showPlanetInfo(d))
             .on('mouseover', function(event, d) {
+                // Agrandir la planète
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', d => this.planetSizeScale(d.radius) * 1.3);
+                    .attr('r', this.planetSizeScale(d.radius) * 1.3);
+                
+                // Afficher la popup
+                this.showPlanetInfo(d);
+                
+                // Positionner la popup
+                this.updatePopupPosition(event);
+            }.bind(this))
+            .on('mousemove', function(event, d) {
+                // Mettre à jour la position de la popup quand la souris bouge
+                this.updatePopupPosition(event);
             }.bind(this))
             .on('mouseout', function(event, d) {
+                // Réduire la planète
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', d => this.planetSizeScale(d.radius));
+                    .attr('r', this.planetSizeScale(d.radius));
+                
+                // Masquer la popup
+                this.hidePlanetPopup();
             }.bind(this));
         
         // Initialiser les traînées
@@ -394,13 +455,18 @@ class Exoplanets {
     }
     
     showPlanetInfo(planet) {
-        const info = d3.select('#planet-info');
-        info.style('display', 'block');
+        // Créer ou mettre à jour la popup
+        this.createPlanetPopup(planet);
+    }
+    
+    createPlanetPopup(planet) {
+        // Supprimer la popup existante s'il y en a une
+        d3.select('#planet-popup').remove();
         
         // Vérifier si la planète est dans la zone d'habitabilité
         let habitabilityStatus = '';
+        let habitabilityClass = '';
         if (this.habitableZone) {
-            // Obtenir les couleurs depuis les variables CSS
             const successColor = getComputedStyle(document.documentElement).getPropertyValue('--success-color').trim();
             const warningColor = getComputedStyle(document.documentElement).getPropertyValue('--warning-color').trim();
             const infoColor = getComputedStyle(document.documentElement).getPropertyValue('--info-color').trim();
@@ -408,23 +474,239 @@ class Exoplanets {
             const isInHabitableZone = planet.semiMajorAxis >= this.habitableZone.inner && 
                                      planet.semiMajorAxis <= this.habitableZone.outer;
             if (isInHabitableZone) {
-                habitabilityStatus = `<p><strong>Zone d'habitabilité:</strong> <span style="color: ${successColor};">✓ Dans la zone habitable</span></p>`;
+                habitabilityStatus = `<span style="color: ${successColor};">✓ Dans la zone habitable</span>`;
+                habitabilityClass = 'habitable';
             } else if (planet.semiMajorAxis < this.habitableZone.inner) {
-                habitabilityStatus = `<p><strong>Zone d'habitabilité:</strong> <span style="color: ${warningColor};">✗ Trop proche de l'étoile</span></p>`;
+                habitabilityStatus = `<span style="color: ${warningColor};">✗ Trop proche de l'étoile</span>`;
+                habitabilityClass = 'too-hot';
             } else {
-                habitabilityStatus = `<p><strong>Zone d'habitabilité:</strong> <span style="color: ${infoColor};">✗ Trop éloignée de l'étoile</span></p>`;
+                habitabilityStatus = `<span style="color: ${infoColor};">✗ Trop éloignée de l'étoile</span>`;
+                habitabilityClass = 'too-cold';
             }
         }
         
-        info.html(`
-            <h4>${planet.name}</h4>
-            <p><strong>Rayon:</strong> ${planet.radius} R⊕</p>
-            <p><strong>Demi-grand axe:</strong> ${planet.semiMajorAxis} UA</p>
-            <p><strong>Période orbitale:</strong> ${planet.orbitalPeriod} jours</p>
-            <p><strong>Masse:</strong> ${planet.mass || 'Inconnue'} M⊕</p>
-            <p><strong>Température:</strong> ${planet.temperature || 'Inconnue'} K</p>
-            ${habitabilityStatus}
+        // Créer la popup
+        const popup = d3.select('body')
+            .append('div')
+            .attr('id', 'planet-popup')
+            .attr('class', `planet-popup ${habitabilityClass}`)
+            .style('position', 'absolute')
+            .style('background', 'rgba(0, 0, 0, 0.95)')
+            .style('border', `2px solid ${planet.color || '#4facfe'}`)
+            .style('border-radius', '12px')
+            .style('padding', '15px')
+            .style('color', 'white')
+            .style('font-family', 'Arial, sans-serif')
+            .style('font-size', '14px')
+            .style('max-width', '280px')
+            .style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.6)')
+            .style('backdrop-filter', 'blur(10px)')
+            .style('z-index', '10000')
+            .style('pointer-events', 'none')
+            .style('opacity', '0')
+            .style('transform', 'scale(0.8)')
+            .style('transition', 'all 0.3s ease');
+        
+        // Contenu de la popup
+        popup.html(`
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: ${planet.color || '#4facfe'}; box-shadow: 0 0 10px ${planet.color || '#4facfe'};"></div>
+                <h3 style="margin: 0; color: ${planet.color || '#4facfe'}; font-size: 18px;">${planet.name}</h3>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                <div><strong>Rayon:</strong></div>
+                <div>${planet.radius} R⊕</div>
+                
+                <div><strong>Demi-grand axe:</strong></div>
+                <div>${planet.semiMajorAxis} UA</div>
+                
+                <div><strong>Période orbitale:</strong></div>
+                <div>${planet.orbitalPeriod} jours</div>
+                
+                <div><strong>Masse:</strong></div>
+                <div>${planet.mass || 'Inconnue'} M⊕</div>
+                
+                <div><strong>Température:</strong></div>
+                <div>${planet.temperature || 'Inconnue'} K</div>
+            </div>
+            
+            ${habitabilityStatus ? `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px;">
+                <strong>Zone d'habitabilité:</strong><br>${habitabilityStatus}
+            </div>` : ''}
         `);
+        
+        // Animer l'apparition de la popup
+        setTimeout(() => {
+            popup.style('opacity', '1')
+                .style('transform', 'scale(1)');
+        }, 10);
+    }
+    
+    updatePopupPosition(event) {
+        const popup = d3.select('#planet-popup');
+        if (popup.empty()) return;
+        
+        const popupNode = popup.node();
+        const rect = popupNode.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        let x = event.clientX + 15;
+        let y = event.clientY - 15;
+        
+        // Ajuster la position si la popup dépasse les bords de l'écran
+        if (x + rect.width > windowWidth) {
+            x = event.clientX - rect.width - 15;
+        }
+        if (y + rect.height > windowHeight) {
+            y = event.clientY - rect.height - 15;
+        }
+        if (y < 0) {
+            y = event.clientY + 15;
+        }
+        
+        popup.style('left', x + 'px')
+             .style('top', y + 'px');
+    }
+    
+    hidePlanetPopup() {
+        const popup = d3.select('#planet-popup');
+        if (!popup.empty()) {
+            popup.style('opacity', '0')
+                .style('transform', 'scale(0.8)')
+                .transition()
+                .duration(200)
+                .on('end', function() {
+                    d3.select(this).remove();
+                });
+        }
+    }
+    
+    showStarInfo() {
+        // Créer ou mettre à jour la popup de l'étoile
+        this.createStarPopup();
+    }
+    
+    createStarPopup() {
+        // Supprimer la popup existante s'il y en a une
+        d3.select('#star-popup').remove();
+        
+        const star = this.data.star;
+        
+        // Utiliser la luminosité calculée par la formule de Stefan-Boltzmann
+        const luminosity = this.habitableZone ? this.habitableZone.luminosity : Math.pow(star.mass, 2.5);
+        
+        // Déterminer le type spectral basé sur la température
+        let spectralType = '';
+        if (star.temperature < 2400) spectralType = 'M9';
+        else if (star.temperature < 2600) spectralType = 'M8';
+        else if (star.temperature < 2800) spectralType = 'M7';
+        else if (star.temperature < 3000) spectralType = 'M6';
+        else spectralType = 'M5';
+        
+        // Créer la popup
+        const popup = d3.select('body')
+            .append('div')
+            .attr('id', 'star-popup')
+            .attr('class', 'star-popup')
+            .style('position', 'absolute')
+            .style('background', 'rgba(0, 0, 0, 0.95)')
+            .style('border', `2px solid ${star.color || '#FF6B35'}`)
+            .style('border-radius', '12px')
+            .style('padding', '15px')
+            .style('color', 'white')
+            .style('font-family', 'Arial, sans-serif')
+            .style('font-size', '14px')
+            .style('max-width', '300px')
+            .style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.6)')
+            .style('backdrop-filter', 'blur(10px)')
+            .style('z-index', '10000')
+            .style('pointer-events', 'none')
+            .style('opacity', '0')
+            .style('transform', 'scale(0.8)')
+            .style('transition', 'all 0.3s ease');
+        
+        // Contenu de la popup
+        popup.html(`
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${star.color || '#FF6B35'}; box-shadow: 0 0 15px ${star.color || '#FF6B35'};"></div>
+                <h3 style="margin: 0; color: ${star.color || '#FF6B35'}; font-size: 20px;">${star.name}</h3>
+            </div>
+            
+            <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
+                <div style="font-size: 12px; opacity: 0.8;">Étoile naine rouge ultra-froide</div>
+                <div style="font-size: 12px; opacity: 0.8;">Type spectral: ${spectralType}</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                <div><strong>Rayon:</strong></div>
+                <div>${star.radius} R☉</div>
+                
+                <div><strong>Masse:</strong></div>
+                <div>${star.mass} M☉</div>
+                
+                <div><strong>Température:</strong></div>
+                <div>${star.temperature} K</div>
+                
+                <div><strong>Luminosité:</strong></div>
+                <div>${(luminosity * 100).toFixed(3)}% L☉</div>
+            </div>
+            
+            <div style="margin-top: 10px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px;">
+                <strong>Caractéristiques:</strong><br>
+                • Naine rouge ultra-froide<br>
+                • Âge estimé: 7.6 ± 2.2 milliards d'années<br>
+                • Distance: 39.5 années-lumière<br>
+                • 7 planètes confirmées
+            </div>
+        `);
+        
+        // Animer l'apparition de la popup
+        setTimeout(() => {
+            popup.style('opacity', '1')
+                .style('transform', 'scale(1)');
+        }, 10);
+    }
+    
+    updateStarPopupPosition(event) {
+        const popup = d3.select('#star-popup');
+        if (popup.empty()) return;
+        
+        const popupNode = popup.node();
+        const rect = popupNode.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        let x = event.clientX + 15;
+        let y = event.clientY - 15;
+        
+        // Ajuster la position si la popup dépasse les bords de l'écran
+        if (x + rect.width > windowWidth) {
+            x = event.clientX - rect.width - 15;
+        }
+        if (y + rect.height > windowHeight) {
+            y = event.clientY - rect.height - 15;
+        }
+        if (y < 0) {
+            y = event.clientY + 15;
+        }
+        
+        popup.style('left', x + 'px')
+             .style('top', y + 'px');
+    }
+    
+    hideStarPopup() {
+        const popup = d3.select('#star-popup');
+        if (!popup.empty()) {
+            popup.style('opacity', '0')
+                .style('transform', 'scale(0.8)')
+                .transition()
+                .duration(200)
+                .on('end', function() {
+                    d3.select(this).remove();
+                });
+        }
     }
     
     play() {
