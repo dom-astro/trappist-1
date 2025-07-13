@@ -15,7 +15,8 @@ const exoplanetData = {
             "orbitalPeriod": 1.51087,
             "mass": 1.374,
             "color": "#E74C3C",
-            "temperature": 400
+            "temperature": 400,
+            "eccentricity": 0.006
         },
         {
             "id": "trappist-1c",
@@ -25,7 +26,8 @@ const exoplanetData = {
             "orbitalPeriod": 2.42182,
             "mass": 1.308,
             "color": "#F39C12",
-            "temperature": 342
+            "temperature": 342,
+            "eccentricity": 0.006
         },
         {
             "id": "trappist-1d",
@@ -35,7 +37,8 @@ const exoplanetData = {
             "orbitalPeriod": 4.04961,
             "mass": 0.388,
             "color": "#27AE60",
-            "temperature": 288
+            "temperature": 288,
+            "eccentricity": 0.008
         },
         {
             "id": "trappist-1e",
@@ -45,7 +48,8 @@ const exoplanetData = {
             "orbitalPeriod": 6.09962,
             "mass": 0.692,
             "color": "#3498DB",
-            "temperature": 251
+            "temperature": 251,
+            "eccentricity": 0.005
         },
         {
             "id": "trappist-1f",
@@ -55,7 +59,8 @@ const exoplanetData = {
             "orbitalPeriod": 9.20669,
             "mass": 1.039,
             "color": "#9B59B6",
-            "temperature": 219
+            "temperature": 219,
+            "eccentricity": 0.010
         },
         {
             "id": "trappist-1g",
@@ -65,7 +70,8 @@ const exoplanetData = {
             "orbitalPeriod": 12.35294,
             "mass": 1.321,
             "color": "#E67E22",
-            "temperature": 198
+            "temperature": 198,
+            "eccentricity": 0.003
         },
         {
             "id": "trappist-1h",
@@ -75,7 +81,8 @@ const exoplanetData = {
             "orbitalPeriod": 18.767,
             "mass": 0.326,
             "color": "#95A5A6",
-            "temperature": 173
+            "temperature": 173,
+            "eccentricity": 0.005
         }
     ]
 } 

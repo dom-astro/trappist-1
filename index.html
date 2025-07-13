@@ -46,6 +46,13 @@
                     Zone d'habitabilité
                 </label>
             </div>
+            <div class="system-select">
+                <label for="systemSelector">Système :</label>
+                <select id="systemSelector">
+                    <option value="trappist-1">TRAPPIST-1</option>
+                    <option value="solaire">Solaire</option>
+                </select>
+            </div>
         </div>
         
         <div class="visualization-container">
@@ -53,7 +60,7 @@
             <div class="legend" id="legend"></div>
         </div>
         
-        <div class="info-panel">
+        <div class="info-panel" id="info-panel">
             <h3>Informations</h3>
             <p>Survolez l'étoile ou une planète avec la souris pour voir leurs détails. Les orbites sont représentées à l'échelle relative.</p>
         </div>
@@ -61,14 +68,71 @@
 
     <script src="js/exoplanets.js"></script>
     <script src="data/trappist-1.js"></script>
+    <script src="data/solaire.js"></script>
     <script>
-        // Initialiser la visualisation
-        const orbits = new Exoplanets('exoplanet-viz', exoplanetData, {
+        // Stocker les données des deux systèmes
+        const systems = {
+            "trappist-1": typeof exoplanetData !== "undefined" ? exoplanetData : [],
+            "solaire": typeof solaireData !== "undefined" ? solaireData : []
+        };
+
+        // Initialiser la visualisation avec TRAPPIST-1 par défaut
+        let orbits = new Exoplanets('exoplanet-viz', systems["trappist-1"], {
             width: 800,
             height: 600,
             animationSpeed: 1,
             showTrails: true,
-            showOrbits: true
+            showOrbits: true,
+            timeScale: 1
+        });
+
+        // Fonction pour changer de système
+        function switchSystem(systemKey) {
+            // Nettoyer l'ancien SVG ou canvas
+            document.getElementById('exoplanet-viz').innerHTML = '';
+            // Définir le timeScale selon le système
+            let timeScale = 1;
+            if (systemKey === 'solaire') {
+                timeScale = 365.25 / 60; // 1 an en 1 minute
+            }
+            // Recréer la visualisation avec les nouvelles données
+            orbits = new Exoplanets('exoplanet-viz', systems[systemKey], {
+                width: 800,
+                height: 600,
+                animationSpeed: parseFloat(document.getElementById('speedSlider').value),
+                showTrails: document.getElementById('showTrails').checked,
+                showOrbits: true,
+                timeScale: timeScale
+            });
+            // Mettre à jour le panneau d'information
+            updateInfoPanel(systemKey);
+        }
+
+        // Fonction pour mettre à jour le panneau d'information
+        function updateInfoPanel(systemKey) {
+            const data = systems[systemKey];
+            let html = `<h3>Informations</h3>`;
+            if (data && data.star && data.planets) {
+                html += `<p><strong>Système :</strong> ${data.star.name || (systemKey === 'trappist-1' ? 'TRAPPIST-1' : 'Solaire')}</p>`;
+                html += `<p><strong>Étoile :</strong> ${data.star.name || 'Inconnue'}<br>`;
+                html += `<strong>Type spectral :</strong> ${data.star.spectralType || 'Inconnu'}<br>`;
+                html += `<strong>Température :</strong> ${data.star.temperature ? data.star.temperature + ' K' : 'Inconnue'}<br>`;
+                html += `<strong>Rayon :</strong> ${data.star.radius ? data.star.radius + ' R☉' : 'Inconnu'}<br>`;
+                html += `<strong>Masse :</strong> ${data.star.mass ? data.star.mass + ' M☉' : 'Inconnue'}</p>`;
+                html += `<p><strong>Nombre de planètes :</strong> ${data.planets.length}</p>`;
+                html += `<p>Survolez l'étoile ou une planète avec la souris pour voir leurs détails. Les orbites sont représentées à l'échelle relative.</p>`;
+            } else {
+                html += `<p>Données indisponibles pour ce système.</p>`;
+            }
+            document.getElementById('info-panel').innerHTML = html;
+        }
+
+        // Appel initial pour afficher les infos du système par défaut
+        updateInfoPanel('trappist-1');
+
+        // Gestionnaire de changement de système
+        document.getElementById('systemSelector').addEventListener('change', function() {
+            switchSystem(this.value);
         });
 
         // Contrôles

@@ -16,6 +16,7 @@ class Exoplanets {
             enableZoom: true,
             minZoom: 0.5,
             maxZoom: 3,
+            timeScale: 1, // Ajouté pour contrôler la vitesse du temps
             ...options
         };
         
@@ -133,19 +134,21 @@ class Exoplanets {
     
     setupScales() {
         const maxDistance = d3.max(this.data.planets, d => d.semiMajorAxis);
-        const minRadius = Math.min(this.options.width, this.options.height) / 2 - 50;
-        
+        const minDistance = d3.min(this.data.planets, d => d.semiMajorAxis);
+        const minRadius = 50; // Distance minimale en pixels pour la première orbite
+        const maxRadius = Math.min(this.options.width, this.options.height) / 2 - 50;
+        // L'échelle commence à minDistance -> minRadius, et maxDistance -> maxRadius
         this.radiusScale = d3.scaleLinear()
-            .domain([0, maxDistance])
-            .range([0, minRadius]);
-        
-        // Cette ligne crée une échelle linéaire avec D3 qui permet de convertir le rayon réel des planètes (en prenant le minimum et le maximum des rayons présents dans les données) en un rayon affiché à l'écran compris entre 3 et 12 pixels. Cela permet de représenter visuellement les différences de taille entre les planètes tout en gardant des valeurs adaptées à l'affichage SVG.
+            .domain([minDistance, maxDistance])
+            .range([minRadius, maxRadius]);
+        // Cette ligne crée une échelle linéaire avec D3 qui permet de convertir le rayon réel des planètes (en prenant le minimum et le maximum des rayons présents dans les données) en un rayon affiché à l'écran compris entre 3 et 6 pixels. Cela permet de représenter visuellement les différences de taille entre les planètes tout en gardant des valeurs adaptées à l'affichage SVG.
         this.planetSizeScale = d3.scaleLinear()
             .domain(d3.extent(this.data.planets, d => d.radius))
             .range([3, 6]);
     }
     
     createElements() {
+        const self = this;
         // Créer la zone d'habitabilité (avant les orbites pour qu'elle soit en arrière-plan)
         if (this.options.showHabitableZone && this.habitableZone) {
             this.createHabitableZone();
@@ -181,28 +184,28 @@ class Exoplanets {
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', (this.data.star.radius || 8) * 1.3);
+                    .attr('r', (self.data.star.radius || 8) * 1.3);
                 
                 // Afficher la popup
-                this.showStarInfo();
+                self.showStarInfo();
                 
                 // Positionner la popup
-                this.updateStarPopupPosition(event);
-            }.bind(this))
+                self.updateStarPopupPosition(event);
+            })
             .on('mousemove', function(event, d) {
                 // Mettre à jour la position de la popup quand la souris bouge
-                this.updateStarPopupPosition(event);
-            }.bind(this))
+                self.updateStarPopupPosition(event);
+            })
             .on('mouseout', function(event, d) {
                 // Réduire l'étoile
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', this.data.star.radius || 8);
+                    .attr('r', self.data.star.radius || 8);
                 
                 // Masquer la popup
-                this.hideStarPopup();
-            }.bind(this));
+                self.hideStarPopup();
+            });
         
         // Appliquer les options de scintillement
         this.updateStarTwinkle();
@@ -224,28 +227,28 @@ class Exoplanets {
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', this.planetSizeScale(d.radius) * 1.3);
+                    .attr('r', self.planetSizeScale(d.radius) * 1.3);
                 
                 // Afficher la popup
-                this.showPlanetInfo(d);
+                self.showPlanetInfo(d);
                 
                 // Positionner la popup
-                this.updatePopupPosition(event);
-            }.bind(this))
+                self.updatePopupPosition(event);
+            })
             .on('mousemove', function(event, d) {
                 // Mettre à jour la position de la popup quand la souris bouge
-                this.updatePopupPosition(event);
-            }.bind(this))
+                self.updatePopupPosition(event);
+            })
             .on('mouseout', function(event, d) {
                 // Réduire la planète
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', this.planetSizeScale(d.radius));
+                    .attr('r', self.planetSizeScale(d.radius));
                 
                 // Masquer la popup
-                this.hidePlanetPopup();
-            }.bind(this));
+                self.hidePlanetPopup();
+            });
         
         // Initialiser les traînées
         this.data.planets.forEach(planet => {
@@ -306,20 +309,46 @@ class Exoplanets {
         this.animate();
     }
     
+    // Ajout d'une fonction utilitaire pour résoudre l'équation de Kepler
+    solveKeplerEquation(M, e, tol = 1e-6, maxIter = 20) {
+        // M : anomalie moyenne (en radians)
+        // e : excentricité
+        // tol : tolérance de convergence
+        // maxIter : nombre max d'itérations
+        let E = M;
+        for (let i = 0; i < maxIter; i++) {
+            let delta = E - e * Math.sin(E) - M;
+            if (Math.abs(delta) < tol) break;
+            E = E - delta / (1 - e * Math.cos(E));
+        }
+        return E;
+    }
+    
     animate() {
         if (!this.isPlaying) return;
-        
-        this.time += 0.01 * this.options.animationSpeed;
-        
+        // Utilise timeScale pour ajuster la vitesse du temps
+        this.time += 0.01 * this.options.animationSpeed * this.options.timeScale;
         // Mettre à jour les positions des planètes
         this.planets.each((d, i) => {
-            const angle = (this.time / d.orbitalPeriod) * 2 * Math.PI;
-            const x = this.radiusScale(d.semiMajorAxis) * Math.cos(angle);
-            const y = this.radiusScale(d.semiMajorAxis) * Math.sin(angle);
-            
+            const e = d.eccentricity || 0;
+            const a = d.semiMajorAxis;
+            const period = d.orbitalPeriod;
+            // Anomalie moyenne (M)
+            const M = (this.time / period) * 2 * Math.PI;
+            // Anomalie excentrique (E)
+            const E = this.solveKeplerEquation(M, e);
+            // Anomalie vraie (theta)
+            const theta = 2 * Math.atan2(
+                Math.sqrt(1 + e) * Math.sin(E / 2),
+                Math.sqrt(1 - e) * Math.cos(E / 2)
+            );
+            // Distance planète-étoile (r)
+            const r = a * (1 - e * e) / (1 + e * Math.cos(theta));
+            // Conversion à l'échelle d'affichage
+            const x = this.radiusScale(r) * Math.cos(theta);
+            const y = this.radiusScale(r) * Math.sin(theta);
             d.x = x;
             d.y = y;
-            
             // Mettre à jour les traînées
             if (this.options.showTrails) {
                 this.trails[d.id].push({x, y});
@@ -328,17 +357,14 @@ class Exoplanets {
                 }
             }
         });
-        
         // Appliquer les nouvelles positions
         this.planets
             .attr('cx', d => d.x)
             .attr('cy', d => d.y);
-        
         // Mettre à jour les traînées
         if (this.options.showTrails) {
             this.updateTrails();
         }
-        
         this.animationId = requestAnimationFrame(() => this.animate());
     }
     
