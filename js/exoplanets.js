@@ -13,6 +13,9 @@ class Exoplanets {
             starTwinkle: true,
             twinkleSpeed: 8,
             showHabitableZone: true,
+            enableZoom: true,
+            minZoom: 0.5,
+            maxZoom: 3,
             ...options
         };
         
@@ -24,12 +27,15 @@ class Exoplanets {
         this.trails = {};
         this.maxTrailLength = 50;
         this.habitableZone = null;
+        this.zoom = null;
+        this.currentZoom = 1;
         
         this.init();
     }
     
     init() {
         this.createSVG();
+        this.setupZoom();
         this.setupScales();
         this.calculateHabitableZone();
         this.createElements();
@@ -74,6 +80,37 @@ class Exoplanets {
         
         this.g = this.svg.append('g')
             .attr('transform', `translate(${this.options.width/2}, ${this.options.height/2})`);
+    }
+    
+    setupZoom() {
+        if (!this.options.enableZoom) return;
+        
+        // Créer la fonction de zoom
+        this.zoom = d3.zoom()
+            .scaleExtent([this.options.minZoom, this.options.maxZoom])
+            .on('zoom', (event) => {
+                this.currentZoom = event.transform.k;
+                this.g.attr('transform', event.transform);
+                
+                // Mettre à jour l'échelle des planètes en fonction du zoom
+                this.updatePlanetSizes();
+                
+                // Mettre à jour l'échelle des traînées
+                this.updateTrailSizes();
+                
+                // Mettre à jour l'indicateur de zoom
+                this.updateZoomIndicator();
+            })
+            .on('end', () => {
+                // Optionnel : sauvegarder le niveau de zoom
+                console.log(`Zoom actuel: ${this.currentZoom.toFixed(2)}x`);
+            });
+        
+        // Appliquer le zoom au SVG
+        this.svg.call(this.zoom);
+        
+        // Ajouter un indicateur de zoom
+        this.createZoomIndicator();
     }
     
     setupScales() {
@@ -476,6 +513,64 @@ class Exoplanets {
         }
     }
     
+    updatePlanetSizes() {
+        if (!this.planets) return;
+        
+        this.planets.each((d, i) => {
+            const baseRadius = this.planetSizeScale(d.radius);
+            const scaledRadius = Math.max(1, baseRadius / this.currentZoom); // Éviter les planètes trop petites
+            
+            d3.select(this.planets.nodes()[i])
+                .attr('r', scaledRadius);
+        });
+    }
+    
+    updateTrailSizes() {
+        if (!this.options.showTrails) return;
+        
+        const trailWidth = Math.max(0.5, 2 / this.currentZoom); // Éviter les traînées trop fines
+        
+        this.trailsGroup.selectAll('.planet-trail')
+            .style('stroke-width', trailWidth);
+    }
+    
+    createZoomIndicator() {
+        // Supprimer l'indicateur existant s'il y en a un
+        d3.select('#zoom-indicator').remove();
+        
+        // Créer un indicateur de zoom dans le coin supérieur droit
+        const container = d3.select(`#${this.containerId}`);
+        const indicator = container.append('div')
+            .attr('id', 'zoom-indicator')
+            .style('position', 'absolute')
+            .style('top', '10px')
+            .style('right', '10px')
+            .style('background', 'rgba(0, 0, 0, 0.7)')
+            .style('color', 'white')
+            .style('padding', '5px 10px')
+            .style('border-radius', '5px')
+            .style('font-size', '12px')
+            .style('font-family', 'Arial, sans-serif')
+            .style('pointer-events', 'none')
+            .style('z-index', '1000');
+        
+        indicator.append('div')
+            .attr('id', 'zoom-level')
+            .text('Zoom: 1.00x');
+        
+        indicator.append('div')
+            .style('font-size', '10px')
+            .style('opacity', '0.8')
+            .text('Utilisez la molette pour zoomer');
+    }
+    
+    updateZoomIndicator() {
+        const zoomLevel = d3.select('#zoom-level');
+        if (!zoomLevel.empty()) {
+            zoomLevel.text(`Zoom: ${this.currentZoom.toFixed(2)}x`);
+        }
+    }
+    
     getHabitableZoneInfo() {
         if (!this.habitableZone) return null;
         
@@ -490,6 +585,53 @@ class Exoplanets {
             outer: this.habitableZone.outer,
             habitablePlanets: habitablePlanets
         };
+    }
+    
+    // Méthodes de contrôle du zoom
+    setZoom(scale) {
+        if (!this.zoom || !this.options.enableZoom) return;
+        
+        const clampedScale = Math.max(this.options.minZoom, Math.min(this.options.maxZoom, scale));
+        this.svg.transition()
+            .duration(300)
+            .call(this.zoom.transform, d3.zoomIdentity.scale(clampedScale));
+    }
+    
+    zoomIn() {
+        if (!this.zoom || !this.options.enableZoom) return;
+        
+        const newScale = Math.min(this.options.maxZoom, this.currentZoom * 1.5);
+        this.setZoom(newScale);
+    }
+    
+    zoomOut() {
+        if (!this.zoom || !this.options.enableZoom) return;
+        
+        const newScale = Math.max(this.options.minZoom, this.currentZoom / 1.5);
+        this.setZoom(newScale);
+    }
+    
+    resetZoom() {
+        if (!this.zoom || !this.options.enableZoom) return;
+        
+        this.svg.transition()
+            .duration(300)
+            .call(this.zoom.transform, d3.zoomIdentity);
+    }
+    
+    enableZoom(enable) {
+        this.options.enableZoom = enable;
+        if (enable && !this.zoom) {
+            this.setupZoom();
+        } else if (!enable && this.zoom) {
+            this.svg.on('.zoom', null);
+            this.zoom = null;
+            d3.select('#zoom-indicator').remove();
+        }
+    }
+    
+    getCurrentZoom() {
+        return this.currentZoom;
     }
 }
 
