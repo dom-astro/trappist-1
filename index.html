@@ -48,8 +48,8 @@
                     <div class="col-auto ms-4">
                         <label for="systemSelector" class="form-label mb-0 me-2">Système :</label>
                         <select id="systemSelector" class="form-select d-inline-block w-auto">
-                            <option value="trappist-1">TRAPPIST-1</option>
-                            <option value="solaire">Solaire</option>
+                            <option value="Système solaire">Système solaire</option>
+                            <option value="Trappist-1">TRAPPIST-1</option>
                         </select>
                     </div>
                 </div>
@@ -82,12 +82,12 @@
     <script>
         // Stocker les données des deux systèmes
         const systems = {
-            "trappist-1": typeof exoplanetData !== "undefined" ? exoplanetData : [],
-            "solaire": typeof solaireData !== "undefined" ? solaireData : []
+            "Trappist-1": typeof exoplanetData !== "undefined" ? exoplanetData : [],
+            "Système solaire": typeof solaireData !== "undefined" ? solaireData : []
         };
 
         // Initialiser la visualisation avec TRAPPIST-1 par défaut
-        let orbits = new Exoplanets('exoplanet-viz', systems["trappist-1"], {
+        let orbits = new Exoplanets('exoplanet-viz', systems["Système solaire"], {
             width: 800,
             height: 600,
             animationSpeed: 1,

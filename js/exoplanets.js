@@ -19,6 +19,8 @@ class Exoplanets {
             timeScale: 1, // Ajouté pour contrôler la vitesse du temps
             showStarryBackground: true, // Ajouté pour activer/désactiver le fond étoilé
             showComet: true, // Ajouté pour activer/désactiver la comète
+            showShootingStars: true, // Ajouté pour activer/désactiver les étoiles filantes
+            shootingStarsCount: 3, // Ajouté pour choisir le nombre d'étoiles filantes
             ...options
         };
         
@@ -111,7 +113,8 @@ class Exoplanets {
         const width = this.options.width;
         const height = this.options.height;
         const nStars = 120;
-        const nShootingStars = 2;
+        // Utiliser l'option pour le nombre d'étoiles filantes
+        const nShootingStars = this.options.showShootingStars ? this.options.shootingStarsCount : 0;
         const cometParams = {
             x: -width/2 + 80,
             y: height/2 - 100,
@@ -130,24 +133,11 @@ class Exoplanets {
                 .attr('opacity', Math.random() * 0.7 + 0.3);
             this.bgStars.push(star);
         }
-        // Générer des étoiles filantes
-        this.shootingStars = [];
-        for (let i = 0; i < nShootingStars; i++) {
-            const shootingStar = this.bgGroup.append('line')
-                .attr('x1', Math.random() * width - width/2)
-                .attr('y1', Math.random() * height - height/2)
-                .attr('x2', function() { return +d3.select(this).attr('x1') + 60; })
-                .attr('y2', function() { return +d3.select(this).attr('y1') + 10; })
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 2)
-                .attr('opacity', 0.0);
-            this.shootingStars.push(shootingStar);
-        }
         // Générer une comète
         this.bgGroup.select('.comet').remove();
         if (this.options.showComet) {
             this.comet = this.bgGroup.append('g').attr('class', 'comet');
-            // Queue : rectangle arrondi décalé derrière la tête
+            // Queue de la comète
             this.cometTail = this.comet.append('rect')
                 .attr('x', -3)
                 .attr('y', -120)
@@ -156,7 +146,7 @@ class Exoplanets {
                 .attr('rx', 3)
                 .attr('fill', 'url(#comet-tail-gradient)')
                 .attr('opacity', 0.5);
-            // Tête plus petite
+            // Tête de la comète
             this.cometHead = this.comet.append('circle')
                 .attr('r', 4)
                 .attr('cy', 0)
@@ -177,6 +167,51 @@ class Exoplanets {
             this.cometHead = null;
             this.cometTail = null;
         }
+        // --- Étoiles filantes ---
+        // Nettoyer les anciennes étoiles filantes
+        this.bgGroup.selectAll('.shooting-star').remove();
+        this.shootingStars = [];
+        for (let i = 0; i < nShootingStars; i++) {
+            this.shootingStars.push(this._createShootingStar(width, height));
+        }
+        // Créer les éléments SVG pour les étoiles filantes
+        this.shootingStarElems = [];
+        for (let i = 0; i < nShootingStars; i++) {
+            const line = this.bgGroup.append('line')
+                .attr('class', 'shooting-star')
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2)
+                .attr('opacity', 0);
+            this.shootingStarElems.push(line);
+        }
+    }
+
+    // Fonction utilitaire pour créer une étoile filante avec des paramètres aléatoires
+    _createShootingStar(width, height) {
+        // Angle entre -30° et -70° (en radians)
+        //const angle = -(Math.PI/6 + Math.random() * Math.PI/3);
+        const angle = Math.random() * Math.PI;
+
+        let x, y;
+        x = Math.random() * width ;
+        y = Math.random() * height ;
+        // Longueur : 80-120px normalement, mais 1/4 des cas très longue (180-260px)
+        let length;
+        if (Math.random() < 0.25) {
+            length = 180 + Math.random() * 80;
+        } else {
+            length = 60 + Math.random() * 40;
+        }
+        return {
+            x: x,
+            y: y,
+            angle: angle,
+            speed: 2.2 + Math.random() * 1.5, // un peu plus lent
+            length: length,
+            opacity: 0,
+            active: false,
+            timer: Math.random() * 3 + 1 // délai avant apparition
+        };
     }
     
     setupZoom() {
@@ -274,7 +309,7 @@ class Exoplanets {
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', (self.data.star.radius || 8) * 1.3);
+                    .attr('r', 12 * 1.3);
                 
                 // Afficher la popup
                 self.showStarInfo();
@@ -291,7 +326,7 @@ class Exoplanets {
                 d3.select(this)
                     .transition()
                     .duration(200)
-                    .attr('r', self.data.star.radius || 8);
+                    .attr('r', 12);
                 
                 // Masquer la popup
                 self.hideStarPopup();
@@ -437,8 +472,8 @@ class Exoplanets {
             );
             // Distance planète-étoile (r)
             const r = a * (1 - e * e) / (1 + e * Math.cos(theta));
-            // Conversion à l'échelle d'affichage
-            const x = this.radiusScale(r) * Math.cos(theta);
+            // Conversion à l'échelle d'affichage avec décalage du foyer
+            const x = this.radiusScale(r) * Math.cos(theta) - this.radiusScale(a) * e;
             const y = this.radiusScale(r) * Math.sin(theta);
             d.x = x;
             d.y = y;
@@ -478,28 +513,45 @@ class Exoplanets {
                     .attr('opacity', newOpacity);
             });
         }
-        // Animation des étoiles filantes
-        if (this.shootingStars) {
-            this.shootingStars.forEach((star, i) => {
-                // Animation cyclique
-                const duration = 2200 + Math.random() * 1200;
-                const delay = Math.random() * 4000;
-                star.attr('opacity', 0.0);
-                setTimeout(() => {
-                    if (!this.isPlaying) return;
-                    star.transition()
-                        .duration(duration)
-                        .attr('opacity', 1)
-                        .attr('x1', Math.random() * this.options.width - this.options.width/2)
-                        .attr('y1', Math.random() * this.options.height - this.options.height/2)
-                        .attr('x2', function() { return +d3.select(this).attr('x1') + 80; })
-                        .attr('y2', function() { return +d3.select(this).attr('y1') + 18; })
-                        .transition()
-                        .duration(600)
-                        .attr('opacity', 0.0)
-                        .on('end', () => this.animateBackground());
-                }, delay);
-            });
+        // --- Animation des étoiles filantes ---
+        if (this.shootingStars && this.shootingStarElems) {
+            const width = this.options.width;
+            const height = this.options.height;
+            for (let i = 0; i < this.shootingStars.length; i++) {
+                const star = this.shootingStars[i];
+                const elem = this.shootingStarElems[i];
+                if (!star.active) {
+                    star.timer -= 0.016; // ~60fps
+                    if (star.timer <= 0) {
+                        star.active = true;
+                        star.opacity = .95;
+                    } else {
+                        elem.attr('opacity', 0);
+                        continue;
+                    }
+                }
+                // Mettre à jour la position
+                star.x += Math.cos(star.angle) * star.speed;
+                star.y += Math.sin(star.angle) * star.speed;
+                // Diminuer l'opacité progressivement
+                star.opacity *= 0.99;
+                // Afficher la ligne
+                elem
+                    .attr('x1', star.x)
+                    .attr('y1', star.y)
+                    .attr('x2', star.x - Math.cos(star.angle) * star.length)
+                    .attr('y2', star.y - Math.sin(star.angle) * star.length)
+                    .attr('stroke-width', 0.5 + 0.5 * star.opacity) // plus fin, max 1px
+                    .attr('opacity', star.opacity);
+                // Si l'étoile filante sort du cadre ou devient invisible, la réinitialiser
+                if (
+                    star.x > width/2 + 40 ||
+                    star.y > height/2 + 40 ||
+                    star.opacity < 0.05
+                ) {
+                    this.shootingStars[i] = this._createShootingStar(width, height);
+                }
+            }
         }
         // Animation de la comète
         if (this.options.showComet && this.comet && this.cometHead && this.cometTail) {
@@ -520,6 +572,9 @@ class Exoplanets {
             requestAnimationFrame(() => this.animateBackground());
         } else if (!this.options.showComet) {
             // Si la comète est désactivée, ne rien faire
+        } else {
+            // Si pas de comète, continuer à animer les étoiles filantes
+            requestAnimationFrame(() => this.animateBackground());
         }
     }
     
