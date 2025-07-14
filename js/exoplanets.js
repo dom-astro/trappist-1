@@ -159,11 +159,23 @@ class Exoplanets {
             this.g.selectAll('.orbit-path')
                 .data(this.data.planets)
                 .enter()
-                .append('circle')
+                .append('ellipse')
                 .attr('class', 'orbit-path')
-                .attr('cx', 0)
+                .attr('cx', function(d) {
+                    // Décalage du centre de l'ellipse pour que le foyer (étoile) soit au centre
+                    const a = self.radiusScale(d.semiMajorAxis);
+                    const e = d.eccentricity || 0;
+                    return -a * e;
+                })
                 .attr('cy', 0)
-                .attr('r', d => this.radiusScale(d.semiMajorAxis))
+                .attr('rx', function(d) {
+                    return self.radiusScale(d.semiMajorAxis);
+                })
+                .attr('ry', function(d) {
+                    const a = self.radiusScale(d.semiMajorAxis);
+                    const e = d.eccentricity || 0;
+                    return a * Math.sqrt(1 - e * e);
+                })
                 .style('fill', 'none')
                 .style('stroke', 'rgba(255, 255, 255, 0.3)')
                 .style('stroke-width', 1)
