@@ -47,11 +47,23 @@ body {
     background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
     color: var(--text-primary);
     min-height: 100vh;
+    background-color: #111 !important;
+    color: #f8f9fa !important;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
+}
+
+.container, .card, .bg-white, .rounded, .shadow-sm, .card-body, .info-panel {
+    background-color: #181818 !important;
+    color: #f8f9fa !important;
+    border-color: #222 !important;
+}
+
+h1, h3, label, .form-label, .form-check-label, .legend {
+    color: #f8f9fa !important;
 }
 
 h1 {
@@ -186,6 +198,33 @@ button:active {
 
 input[type="range"] {
     width: 150px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    background: #0d6efd;
+}
+
+input[type="range"]::-moz-range-thumb {
+    background: #0d6efd;
+}
+
+input[type="range"]::-ms-thumb {
+    background: #0d6efd;
+}
+
+select.form-select, .form-control {
+    background-color: #222 !important;
+    color: #f8f9fa !important;
+    border-color: #333 !important;
+}
+
+.btn-primary, .btn-secondary {
+    color: #fff !important;
+}
+
+/* Pour les sliders Bootstrap */
+.form-range {
+    background-color: #222 !important;
 }
 
 .visualization-container {

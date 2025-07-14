@@ -17,6 +17,8 @@ class Exoplanets {
             minZoom: 0.5,
             maxZoom: 3,
             timeScale: 1, // Ajouté pour contrôler la vitesse du temps
+            showStarryBackground: true, // Ajouté pour activer/désactiver le fond étoilé
+            showComet: true, // Ajouté pour activer/désactiver la comète
             ...options
         };
         
@@ -41,7 +43,6 @@ class Exoplanets {
         this.calculateHabitableZone();
         this.createElements();
         this.setupAnimation();
-        this.createLegend();
     }
     
     calculateHabitableZone() {
@@ -88,17 +89,94 @@ class Exoplanets {
     }
     
     createSVG() {
-        const container = d3.select(`#${this.containerId}`);
-        container.select('svg').remove();
-        
-        this.svg = container
+        // Créer le SVG principal
+        this.svg = d3.select(`#${this.containerId}`)
             .append('svg')
             .attr('width', this.options.width)
             .attr('height', this.options.height)
-            .style('background', 'radial-gradient(circle at center, #0a0a0a 0%, #000000 100%)');
-        
-        this.g = this.svg.append('g')
-            .attr('transform', `translate(${this.options.width/2}, ${this.options.height/2})`);
+            .attr('viewBox', [-this.options.width / 2, -this.options.height / 2, this.options.width, this.options.height]);
+
+        // Groupe pour le fond étoilé
+        this.bgGroup = this.svg.append('g').attr('class', 'background-stars');
+        if (this.options.showStarryBackground) {
+            this.createStarryBackground();
+        }
+
+        // Groupe principal pour les éléments du système
+        this.g = this.svg.append('g').attr('class', 'main-group');
+    }
+
+    createStarryBackground() {
+        // Paramètres du fond étoilé
+        const width = this.options.width;
+        const height = this.options.height;
+        const nStars = 120;
+        const nShootingStars = 2;
+        const cometParams = {
+            x: -width/2 + 80,
+            y: height/2 - 100,
+            length: 120,
+            angle: -Math.PI/6,
+            speed: 0.7
+        };
+        // Générer des étoiles statiques
+        this.bgStars = [];
+        for (let i = 0; i < nStars; i++) {
+            const star = this.bgGroup.append('circle')
+                .attr('cx', Math.random() * width - width/2)
+                .attr('cy', Math.random() * height - height/2)
+                .attr('r', Math.random() * 1.2 + 0.3)
+                .attr('fill', '#fff')
+                .attr('opacity', Math.random() * 0.7 + 0.3);
+            this.bgStars.push(star);
+        }
+        // Générer des étoiles filantes
+        this.shootingStars = [];
+        for (let i = 0; i < nShootingStars; i++) {
+            const shootingStar = this.bgGroup.append('line')
+                .attr('x1', Math.random() * width - width/2)
+                .attr('y1', Math.random() * height - height/2)
+                .attr('x2', function() { return +d3.select(this).attr('x1') + 60; })
+                .attr('y2', function() { return +d3.select(this).attr('y1') + 10; })
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2)
+                .attr('opacity', 0.0);
+            this.shootingStars.push(shootingStar);
+        }
+        // Générer une comète
+        this.bgGroup.select('.comet').remove();
+        if (this.options.showComet) {
+            this.comet = this.bgGroup.append('g').attr('class', 'comet');
+            // Queue : rectangle arrondi décalé derrière la tête
+            this.cometTail = this.comet.append('rect')
+                .attr('x', -3)
+                .attr('y', -120)
+                .attr('width', 6)
+                .attr('height', 120)
+                .attr('rx', 3)
+                .attr('fill', 'url(#comet-tail-gradient)')
+                .attr('opacity', 0.5);
+            // Tête plus petite
+            this.cometHead = this.comet.append('circle')
+                .attr('r', 4)
+                .attr('cy', 0)
+                .attr('fill', 'url(#comet-gradient)');
+            // Définir les gradients pour la comète
+            const defs = this.svg.append('defs');
+            const grad = defs.append('radialGradient').attr('id', 'comet-gradient');
+            grad.append('stop').attr('offset', '0%').attr('stop-color', '#fff');
+            grad.append('stop').attr('offset', '80%').attr('stop-color', '#aef');
+            grad.append('stop').attr('offset', '100%').attr('stop-color', '#00f').attr('stop-opacity', 0);
+            const tailGrad = defs.append('linearGradient').attr('id', 'comet-tail-gradient').attr('x1', '0%').attr('y1', '100%').attr('x2', '0%').attr('y2', '0%');
+            tailGrad.append('stop').attr('offset', '0%').attr('stop-color', '#aef').attr('stop-opacity', 0.7);
+            tailGrad.append('stop').attr('offset', '100%').attr('stop-color', '#fff').attr('stop-opacity', 0);
+            // Initialiser la position de la comète
+            this.cometPos = { x: cometParams.x, y: cometParams.y, angle: cometParams.angle, speed: cometParams.speed };
+        } else {
+            this.comet = null;
+            this.cometHead = null;
+            this.cometTail = null;
+        }
     }
     
     setupZoom() {
@@ -299,6 +377,7 @@ class Exoplanets {
             .style('fill', `radial-gradient(circle at center, ${bgPrimary} 0%, ${bgTertiary} 100%)`)
             .style('stroke', habitableZoneBorder)
             .style('stroke-width', 2)
+            .style('opacity', 0.2)
             .style('stroke-dasharray', '5,5');
         
         // Ajouter des étiquettes pour la zone d'habitabilité
@@ -319,6 +398,8 @@ class Exoplanets {
     
     setupAnimation() {
         this.animate();
+        // Animation des étoiles filantes et de la comète
+        this.animateBackground();
     }
     
     // Ajout d'une fonction utilitaire pour résoudre l'équation de Kepler
@@ -378,6 +459,68 @@ class Exoplanets {
             this.updateTrails();
         }
         this.animationId = requestAnimationFrame(() => this.animate());
+    }
+
+    animateBackground() {
+        // Arrêter l'animation si en pause
+        if (!this.isPlaying) return;
+        // Scintillement des étoiles de fond
+        if (this.bgStars) {
+            this.bgStars.forEach(star => {
+                const baseR = +star.attr('data-base-r') || +star.attr('r');
+                if (!star.attr('data-base-r')) star.attr('data-base-r', baseR);
+                // Variation douce
+                const newR = baseR * (0.85 + 0.3 * Math.random());
+                const newOpacity = 0.5 + 0.5 * Math.random();
+                star.transition()
+                    .duration(1200 + Math.random() * 800)
+                    .attr('r', newR)
+                    .attr('opacity', newOpacity);
+            });
+        }
+        // Animation des étoiles filantes
+        if (this.shootingStars) {
+            this.shootingStars.forEach((star, i) => {
+                // Animation cyclique
+                const duration = 2200 + Math.random() * 1200;
+                const delay = Math.random() * 4000;
+                star.attr('opacity', 0.0);
+                setTimeout(() => {
+                    if (!this.isPlaying) return;
+                    star.transition()
+                        .duration(duration)
+                        .attr('opacity', 1)
+                        .attr('x1', Math.random() * this.options.width - this.options.width/2)
+                        .attr('y1', Math.random() * this.options.height - this.options.height/2)
+                        .attr('x2', function() { return +d3.select(this).attr('x1') + 80; })
+                        .attr('y2', function() { return +d3.select(this).attr('y1') + 18; })
+                        .transition()
+                        .duration(600)
+                        .attr('opacity', 0.0)
+                        .on('end', () => this.animateBackground());
+                }, delay);
+            });
+        }
+        // Animation de la comète
+        if (this.options.showComet && this.comet && this.cometHead && this.cometTail) {
+            // Mouvement diagonal de la comète
+            this.cometPos.x += Math.cos(this.cometPos.angle) * this.cometPos.speed;
+            this.cometPos.y += Math.sin(this.cometPos.angle) * this.cometPos.speed;
+            // Boucle si la comète sort du cadre
+            if (this.cometPos.x > this.options.width/2 + 100 || this.cometPos.y < -this.options.height/2 - 100) {
+                this.cometPos.x = -this.options.width/2 + 80;
+                this.cometPos.y = this.options.height/2 - 100;
+            }
+            // Calculer l'angle opposé à l'étoile (centre du SVG) et tourner de 90° vers la gauche
+            const dx = this.cometPos.x;
+            const dy = this.cometPos.y;
+            const angleToStar = Math.atan2(-dy, -dx) * 180 / Math.PI; // angle en degrés
+            this.comet.attr('transform', `translate(${this.cometPos.x},${this.cometPos.y}) rotate(${angleToStar - 90})`);
+            // Rafraîchir l'animation
+            requestAnimationFrame(() => this.animateBackground());
+        } else if (!this.options.showComet) {
+            // Si la comète est désactivée, ne rien faire
+        }
     }
     
     updateTrails() {
@@ -529,49 +672,31 @@ class Exoplanets {
             .attr('id', 'planet-popup')
             .attr('class', `planet-popup ${habitabilityClass}`)
             .style('position', 'absolute')
-            .style('background', 'rgba(0, 0, 0, 0.95)')
-            .style('border', `2px solid ${planet.color || '#4facfe'}`)
-            .style('border-radius', '12px')
-            .style('padding', '15px')
-            .style('color', 'white')
-            .style('font-family', 'Arial, sans-serif')
-            .style('font-size', '14px')
-            .style('max-width', '280px')
-            .style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.6)')
-            .style('backdrop-filter', 'blur(10px)')
             .style('z-index', '10000')
             .style('pointer-events', 'none')
             .style('opacity', '0')
             .style('transform', 'scale(0.8)')
-            .style('transition', 'all 0.3s ease');
+            .style('transition', 'all 0.3s ease')
+            .style('max-width', '320px');
         
-        // Contenu de la popup
+        // Contenu de la popup (Bootstrap card)
         popup.html(`
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                <div style="width: 20px; height: 20px; border-radius: 50%; background: ${planet.color || '#4facfe'}; box-shadow: 0 0 10px ${planet.color || '#4facfe'};"></div>
-                <h3 style="margin: 0; color: ${planet.color || '#4facfe'}; font-size: 18px;">${planet.name}</h3>
+            <div class="card bg-dark text-light border-2" style="border-color: ${planet.color || '#4facfe'};">
+                <div class="card-header d-flex align-items-center gap-2" style="border-bottom-color: ${planet.color || '#4facfe'};">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: ${planet.color || '#4facfe'}; box-shadow: 0 0 10px ${planet.color || '#4facfe'};"></div>
+                    <span class="fw-bold" style="color: ${planet.color || '#4facfe'}; font-size: 1.1rem;">${planet.name}</span>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row mb-1"><div class="col-7">Rayon :</div><div class="col-5 text-end">${planet.radius} R⊕</div></div>
+                    <div class="row mb-1"><div class="col-7">Demi-grand axe :</div><div class="col-5 text-end">${planet.semiMajorAxis} UA</div></div>
+                    <div class="row mb-1"><div class="col-7">Période orbitale :</div><div class="col-5 text-end">${planet.orbitalPeriod} jours</div></div>
+                    <div class="row mb-1"><div class="col-7">Masse :</div><div class="col-5 text-end">${planet.mass || 'Inconnue'} M⊕</div></div>
+                    <div class="row mb-1"><div class="col-7">Température :</div><div class="col-5 text-end">${planet.temperature || 'Inconnue'} K</div></div>
+                    ${habitabilityStatus ? `<div class="alert alert-info mt-2 py-1 px-2" style="font-size: 0.95em; background: rgba(255,255,255,0.07); border: none; color: inherit;">
+                        <strong>Zone d'habitabilité :</strong><br>${habitabilityStatus}
+                    </div>` : ''}
+                </div>
             </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                <div><strong>Rayon:</strong></div>
-                <div>${planet.radius} R⊕</div>
-                
-                <div><strong>Demi-grand axe:</strong></div>
-                <div>${planet.semiMajorAxis} UA</div>
-                
-                <div><strong>Période orbitale:</strong></div>
-                <div>${planet.orbitalPeriod} jours</div>
-                
-                <div><strong>Masse:</strong></div>
-                <div>${planet.mass || 'Inconnue'} M⊕</div>
-                
-                <div><strong>Température:</strong></div>
-                <div>${planet.temperature || 'Inconnue'} K</div>
-            </div>
-            
-            ${habitabilityStatus ? `<div style="margin-top: 10px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px;">
-                <strong>Zone d'habitabilité:</strong><br>${habitabilityStatus}
-            </div>` : ''}
         `);
         
         // Animer l'apparition de la popup
@@ -649,54 +774,34 @@ class Exoplanets {
             .attr('id', 'star-popup')
             .attr('class', 'star-popup')
             .style('position', 'absolute')
-            .style('background', 'rgba(0, 0, 0, 0.95)')
-            .style('border', `2px solid ${star.color || '#FF6B35'}`)
-            .style('border-radius', '12px')
-            .style('padding', '15px')
-            .style('color', 'white')
-            .style('font-family', 'Arial, sans-serif')
-            .style('font-size', '14px')
-            .style('max-width', '300px')
-            .style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.6)')
-            .style('backdrop-filter', 'blur(10px)')
             .style('z-index', '10000')
             .style('pointer-events', 'none')
             .style('opacity', '0')
             .style('transform', 'scale(0.8)')
-            .style('transition', 'all 0.3s ease');
+            .style('transition', 'all 0.3s ease')
+            .style('max-width', '340px');
         
-        // Contenu de la popup
+        // Contenu de la popup (Bootstrap card)
         popup.html(`
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${star.color || '#FF6B35'}; box-shadow: 0 0 15px ${star.color || '#FF6B35'};"></div>
-                <h3 style="margin: 0; color: ${star.color || '#FF6B35'}; font-size: 20px;">${star.name}</h3>
-            </div>
-            
-            <div style="margin-bottom: 12px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px;">
-                <div style="font-size: 12px; opacity: 0.8;">Étoile naine rouge ultra-froide</div>
-                <div style="font-size: 12px; opacity: 0.8;">Type spectral: ${spectralType}</div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                <div><strong>Rayon:</strong></div>
-                <div>${star.radius} R☉</div>
-                
-                <div><strong>Masse:</strong></div>
-                <div>${star.mass} M☉</div>
-                
-                <div><strong>Température:</strong></div>
-                <div>${star.temperature} K</div>
-                
-                <div><strong>Luminosité:</strong></div>
-                <div>${(luminosity * 100).toFixed(3)}% L☉</div>
-            </div>
-            
-            <div style="margin-top: 10px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px;">
-                <strong>Caractéristiques:</strong><br>
-                • Naine rouge ultra-froide<br>
-                • Âge estimé: 7.6 ± 2.2 milliards d'années<br>
-                • Distance: 39.5 années-lumière<br>
-                • 7 planètes confirmées
+            <div class="card bg-dark text-light border-2" style="border-color: ${star.color || '#FF6B35'};">
+                <div class="card-header d-flex align-items-center gap-2" style="border-bottom-color: ${star.color || '#FF6B35'};">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: ${star.color || '#FF6B35'}; box-shadow: 0 0 15px ${star.color || '#FF6B35'};"></div>
+                    <span class="fw-bold" style="color: ${star.color || '#FF6B35'}; font-size: 1.15rem;">${star.name}</span>
+                </div>
+                <div class="card-body py-2">
+                    <div class="mb-2 small text-secondary">Étoile naine rouge ultra-froide<br>Type spectral : ${spectralType}</div>
+                    <div class="row mb-1"><div class="col-7">Rayon :</div><div class="col-5 text-end">${star.radius} R☉</div></div>
+                    <div class="row mb-1"><div class="col-7">Masse :</div><div class="col-5 text-end">${star.mass} M☉</div></div>
+                    <div class="row mb-1"><div class="col-7">Température :</div><div class="col-5 text-end">${star.temperature} K</div></div>
+                    <div class="row mb-1"><div class="col-7">Luminosité :</div><div class="col-5 text-end">${(luminosity * 100).toFixed(3)}% L☉</div></div>
+                    <div class="alert alert-info mt-2 py-1 px-2" style="font-size: 0.95em; background: rgba(255,255,255,0.07); border: none; color: inherit;">
+                        <strong>Caractéristiques :</strong><br>
+                        • Naine rouge ultra-froide<br>
+                        • Âge estimé : 7.6 ± 2.2 milliards d'années<br>
+                        • Distance : 39.5 années-lumière<br>
+                        • 7 planètes confirmées
+                    </div>
+                </div>
             </div>
         `);
         
@@ -750,6 +855,7 @@ class Exoplanets {
     play() {
         this.isPlaying = true;
         this.animate();
+        this.animateBackground(); // relancer l'animation du fond
     }
     
     pause() {
@@ -757,6 +863,7 @@ class Exoplanets {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
         }
+        // L'animation du fond s'arrêtera automatiquement au prochain frame
     }
     
     reset() {

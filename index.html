@@ -4,65 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualisation des Orbites d'Exoplanètes</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>🌌 Visualisation des Orbites d'Exoplanètes</h1>
+    <div class="container py-4">
+        <h1 class="mb-4 text-center">🌌 Visualisation des Orbites d'Exoplanètes</h1>
         
-        <div class="controls">
-            <button id="playPause">⏸️ Pause</button>
-            <button id="reset">🔄 Reset</button>
-            <div class="speed-control">
-                <label>Vitesse:</label>
-                <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
-                <span id="speedValue">1x</span>
-            </div>
-            <div class="trail-controls">
-                <label>
-                    <input type="checkbox" id="showTrails" checked>
-                    Traînées
-                </label>
-                <label>
-                    <input type="checkbox" id="fadeTrails" checked>
-                    Estompage
-                </label>
-            </div>
-            <div class="star-controls">
-                <label>
-                    <input type="checkbox" id="starTwinkle" checked>
-                    Scintillement étoile
-                </label>
-                <div class="twinkle-speed-control">
-                    <label>Vitesse scintillement:</label>
-                    <input type="range" id="twinkleSpeedSlider" min="2" max="15" step="1" value="8">
-                    <span id="twinkleSpeedValue">8s</span>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <button id="playPause" class="btn btn-primary me-2">⏸️ Pause</button>
+                        <button id="reset" class="btn btn-secondary me-4">🔄 Reset</button>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0 me-2">Vitesse:</label>
+                        <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1" class="form-range d-inline-block align-middle" style="width:120px;">
+                        <span id="speedValue" class="ms-1">1x</span>
+                    </div>
+                    <div class="col-auto form-check form-switch ms-4">
+                        <input class="form-check-input" type="checkbox" id="showTrails" checked>
+                        <label class="form-check-label" for="showTrails">Traînées</label>
+                    </div>
+                    <div class="col-auto form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="fadeTrails" checked>
+                        <label class="form-check-label" for="fadeTrails">Estompage</label>
+                    </div>
+                    <div class="col-auto form-check form-switch ms-4">
+                        <input class="form-check-input" type="checkbox" id="starTwinkle" checked>
+                        <label class="form-check-label" for="starTwinkle">Scintillement étoile</label>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0 me-2">Vitesse scintillement:</label>
+                        <input type="range" id="twinkleSpeedSlider" min="2" max="15" step="1" value="8" class="form-range d-inline-block align-middle" style="width:100px;">
+                        <span id="twinkleSpeedValue" class="ms-1">8s</span>
+                    </div>
+                    <div class="col-auto form-check form-switch ms-4">
+                        <input class="form-check-input" type="checkbox" id="showHabitableZone" checked>
+                        <label class="form-check-label" for="showHabitableZone">Zone d'habitabilité</label>
+                    </div>
+                    <div class="col-auto ms-4">
+                        <label for="systemSelector" class="form-label mb-0 me-2">Système :</label>
+                        <select id="systemSelector" class="form-select d-inline-block w-auto">
+                            <option value="trappist-1">TRAPPIST-1</option>
+                            <option value="solaire">Solaire</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="habitable-zone-controls">
-                <label>
-                    <input type="checkbox" id="showHabitableZone" checked>
-                    Zone d'habitabilité
-                </label>
-            </div>
-            <div class="system-select">
-                <label for="systemSelector">Système :</label>
-                <select id="systemSelector">
-                    <option value="trappist-1">TRAPPIST-1</option>
-                    <option value="solaire">Solaire</option>
-                </select>
-            </div>
         </div>
         
-        <div class="visualization-container">
-            <div id="exoplanet-viz" style="position: relative;"></div>
-            <div class="legend" id="legend"></div>
-        </div>
-        
-        <div class="info-panel" id="info-panel">
-            <h3>Informations</h3>
-            <p>Survolez l'étoile ou une planète avec la souris pour voir leurs détails. Les orbites sont représentées à l'échelle relative.</p>
+        <div class="row mb-4">
+            <div class="col-lg-9 mb-3 mb-lg-0">
+                <div class="bg-white rounded shadow-sm p-3 position-relative" id="exoplanet-viz" style="min-height: 600px;"></div>
+            </div>
+            <div class="col-lg-3">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="legend" id="legend"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body info-panel" id="info-panel">
+                        <h3>Informations</h3>
+                        <p>Survolez l'étoile ou une planète avec la souris pour voir leurs détails. Les orbites sont représentées à l'échelle relative.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -181,5 +191,6 @@
             orbits.setHabitableZone(this.checked);
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
