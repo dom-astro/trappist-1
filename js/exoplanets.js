@@ -1,7 +1,27 @@
 // Bibliothèque Exoplanets
+// Fonction utilitaire pour obtenir la couleur à partir du type spectral
+function getColorFromSpectralType(spectralType) {
+    if (!spectralType) return '#fff';
+    const type = spectralType[0].toUpperCase();
+    switch(type) {
+        case 'O': return '#6B8EFF'; // bleu
+        case 'B': return '#A1C8FF'; // bleu-blanc
+        case 'A': return '#FFFFFF'; // blanc
+        case 'F': return '#FFF9EC'; // blanc-jaunâtre
+        case 'G': return '#FFFA42'; // jaune
+        case 'K': return '#FF9E40'; // orange
+        case 'M': return '#FF694D'; // rouge
+        default: return '#FFFFFF';
+    }
+}
+
 class Exoplanets {
     constructor(containerId, data, options = {}) {
         this.containerId = containerId;
+        // Déduire la couleur de l'étoile si absente
+        if (data.star.spectralType) {
+            data.star.color = getColorFromSpectralType(data.star.spectralType);
+        }
         this.data = data;
         this.options = {
             width: 800,

@@ -49,7 +49,9 @@
                         <label for="systemSelector" class="form-label mb-0 me-2">Système :</label>
                         <select id="systemSelector" class="form-select d-inline-block w-auto">
                             <option value="Système solaire">Système solaire</option>
-                            <option value="Trappist-1">TRAPPIST-1</option>
+                            <option value="Trappist-1">Trappist-1</option>
+                            <option value="Proxima">Proxima</option>
+                            <option value="Kepler-452">Kepler-452</option>
                         </select>
                     </div>
                 </div>
@@ -79,11 +81,15 @@
     <script src="js/exoplanets.js"></script>
     <script src="data/trappist-1.js"></script>
     <script src="data/solaire.js"></script>
+    <script src="data/proxima.js"></script>
+    <script src="data/kepler-452.js"></script>
     <script>
-        // Stocker les données des deux systèmes
+        // Stocker les données des quatre systèmes
         const systems = {
-            "Trappist-1": typeof exoplanetData !== "undefined" ? exoplanetData : [],
-            "Système solaire": typeof solaireData !== "undefined" ? solaireData : []
+            "Trappist-1": typeof trappistData !== "undefined" ? trappistData : [],
+            "Système solaire": typeof solaireData !== "undefined" ? solaireData : [],
+            "Proxima": typeof proximaData !== "undefined" ? proximaData : [],
+            "Kepler-452": typeof keplerData !== "undefined" ? keplerData : []
         };
 
         // Initialiser la visualisation avec TRAPPIST-1 par défaut

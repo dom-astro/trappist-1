@@ -1,10 +1,10 @@
-const exoplanetData = {
+const trappistData = {
     "star": {
         "name": "TRAPPIST-1",
         "radius": 0.121,
-        "color": "#FF6B35",
         "mass": 0.089,
-        "temperature": 2511
+        "temperature": 2511,
+        "spectralType": "M"
     },
     "planets": [
         {

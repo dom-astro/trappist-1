@@ -2,9 +2,9 @@ const solaireData = {
     "star": {
         "name": "Soleil",
         "radius": 1,
-        "color": "#FFD700",
         "mass": 1,
-        "temperature": 5778
+        "temperature": 5778,
+        "spectralType": "G"
     },
     "planets": [
         {
